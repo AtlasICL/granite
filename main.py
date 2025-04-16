@@ -19,7 +19,7 @@ def find_best_subset(blocks, capacity):
     Returns (best_subset, best_weight).
     """
     best_subset = []
-    best_weight: float = 0
+    best_weight = 0.0
 
     def search(start, current_subset, current_weight):
         nonlocal best_subset, best_weight
@@ -66,18 +66,6 @@ for container in range(1, CONTAINER_COUNT + 1):
 # Print out the container assignments
 for container, assignment in container_assignments.items():
     blocks_str = ", ".join(str(b) for b in assignment["blocks"])
-    print(f"Container {container}: blocks {blocks_str} (Total Weight: {assignment['total_weight']})")
-
-# (Optional) List any blocks that remain unassigned.
-if remaining_blocks:
-    unassigned = ", ".join(str(b[0]) for b in remaining_blocks)
-    print(f"\nUnassigned blocks: {unassigned}")
+    print(f"Container {container}: blocks {blocks_str} (Total Weight of container: {assignment['total_weight']})")
 
 
-# def main():
-#     print(CONTAINER_COUNT)
-#     print(CONTAINER_CAPACITY)
-#     print(df_sorted.head(10))
-
-# if __name__ == "__main__": 
-#     main()
