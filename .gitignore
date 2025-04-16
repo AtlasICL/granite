@@ -1,4 +1,7 @@
 venv/
+
 build/
 dist/
 main.spec
+
+allocator/__pycache__
