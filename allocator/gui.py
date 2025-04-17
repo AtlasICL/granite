@@ -109,8 +109,9 @@ class BlockAllocatorGUI(tk.Tk):
         for idx, (cid, info) in enumerate(assignments.items()):
             row, col = divmod(idx, cols)
             blocks_list = info['blocks']
+            blocks_str_to_display = ', '.join(str(b) for b in blocks_list)
             total_wt = info['total_weight']
-            text = f"Container {cid}:\nBlocks: {blocks_list}\nTotal: {total_wt}"
+            text = f"Container {cid}:\nBlocks: {blocks_str_to_display}\nTotal: {total_wt}"
             lbl = ttk.Label(result_frame, text=text, relief=tk.RIDGE, padding=10, justify="left")
             lbl.grid(row=row, column=col, sticky="nsew", padx=5, pady=5)
             result_frame.columnconfigure(col, weight=1)
