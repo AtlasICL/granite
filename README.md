@@ -10,7 +10,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-executable build command:
+## Build command for executable
 ```
 pyinstaller --onefile --windowed --name BlockAllocator main.py
 ```
