@@ -12,7 +12,8 @@ class GUI_SELECTION_settings:
     FONT_FAMILY: str = "Arial"
     FONT_SIZE: int = 14
     DATA_ENTRY_FONT_SIZE: int = 12
-
+    CONTAINER_COUNT_TEXT: str = "Number of containers:"
+    CONTAINER_PAYLOAD_TEXT: str = "Max weight per container:"
 
 # Settings for results window
 class GUI_RESULTS_settings:
@@ -41,12 +42,12 @@ class BlockAllocatorGUI(tk.Tk):
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Number of containers
-        ttk.Label(main_frame, text="Number of containers:").grid(row=0, column=0, sticky="e", padx=5, pady=10)
-        self.container_count_var = tk.IntVar(value=0)
+        ttk.Label(main_frame, text=GUI_SELECTION_settings.CONTAINER_COUNT_TEXT).grid(row=0, column=0, sticky="e", padx=5, pady=10)
+        self.container_count_var = tk.IntVar(value=2)
         ttk.Entry(main_frame, textvariable=self.container_count_var, width=10, font=entry_font).grid(row=0, column=1, sticky="w", padx=5)
 
         # Max weight per container
-        ttk.Label(main_frame, text="Max weight per container:").grid(row=1, column=0, sticky="e", padx=5, pady=10)
+        ttk.Label(main_frame, text=GUI_SELECTION_settings.CONTAINER_PAYLOAD_TEXT).grid(row=1, column=0, sticky="e", padx=5, pady=10)
         self.capacity_var = tk.DoubleVar(value=0.0)
         ttk.Entry(main_frame, textvariable=self.capacity_var, width=10, font=entry_font).grid(row=1, column=1, sticky="w", padx=5)
 
@@ -109,7 +110,7 @@ class BlockAllocatorGUI(tk.Tk):
         for idx, (cid, info) in enumerate(assignments.items()):
             row, col = divmod(idx, cols)
             blocks_list = info['blocks']
-            blocks_str_to_display = ', '.join(str(b) for b in blocks_list)
+            blocks_str_to_display = ', '.join(str(b) for b in blocks_list) if len(blocks_list) >= 1 else "No blocks"
             total_wt = info['total_weight']
             text = f"Container {cid}:\nBlocks: {blocks_str_to_display}\nTotal: {total_wt}"
             lbl = ttk.Label(result_frame, text=text, relief=tk.RIDGE, padding=10, justify="left")
