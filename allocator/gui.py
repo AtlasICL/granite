@@ -1,83 +1,76 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import tkinter.font as tkfont
+from tkinter import ttk
 from typing import Optional
 from allocator.logic import load_blocks, assign_containers
 
+# Settings for selection window
 class GUI_SELECTION_settings:
-    WINDOW_TITLE: str = "Block allocator"
-    WINDOW_GEOMETRY: str = "500x350"
-    FONT: str = "Arial"
-    FONT_SIZE: int = 12
+    WINDOW_TITLE: str = "Geoinvest Block Allocator"
+    WINDOW_GEOMETRY: str = "500x400"
+    FONT_FAMILY: str = "Arial"
+    FONT_SIZE: int = 14
+    DATA_ENTRY_FONT_SIZE: int = 12
 
+
+# Settings for results window
 class GUI_RESULTS_settings:
-    WINDOW_TITLE: str = "Block allocations"
+    WINDOW_TITLE: str = "Block Allocations"
     WINDOW_GEOMETRY: str = "600x600"
-    FONT: str = "Arial"
-    FONT_SIZE: int = 11
+    FONT_FAMILY: str = "Arial"
+    FONT_SIZE: int = 14
+
 
 class BlockAllocatorGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title(GUI_SELECTION_settings.WINDOW_TITLE)
         self.geometry(GUI_SELECTION_settings.WINDOW_GEOMETRY)
-        default_font = tkfont.Font(family=GUI_SELECTION_settings.FONT, size=GUI_SELECTION_settings.FONT_SIZE)
-        self.option_add("*Font", default_font)
 
-        # Main frame with padding
-        main_frame = tk.Frame(self, padx=20, pady=20)
+        style = ttk.Style(self)
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            style.theme_use(style.theme_names()[0])
+        style.configure('.', font=(GUI_SELECTION_settings.FONT_FAMILY, GUI_SELECTION_settings.FONT_SIZE), padding=6)
+        entry_font = tkfont.Font(family=GUI_SELECTION_settings.FONT_FAMILY, size=GUI_SELECTION_settings.DATA_ENTRY_FONT_SIZE)
+
+        # Main frame
+        main_frame = ttk.Frame(self, padding=(20, 20))
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Number of containers
-        tk.Label(main_frame, text="Number of containers:").grid(
-            row=0, column=0, sticky="e", padx=5, pady=10
-        )
-        self.container_count_var = tk.IntVar(value=1)
-        tk.Entry(main_frame, textvariable=self.container_count_var, width=10).grid(
-            row=0, column=1, sticky="w", padx=5, pady=10
-        )
+        ttk.Label(main_frame, text="Number of containers:").grid(row=0, column=0, sticky="e", padx=5, pady=10)
+        self.container_count_var = tk.IntVar(value=0)
+        ttk.Entry(main_frame, textvariable=self.container_count_var, width=10, font=entry_font).grid(row=0, column=1, sticky="w", padx=5)
 
         # Max weight per container
-        tk.Label(main_frame, text="Max weight per container:").grid(
-            row=1, column=0, sticky="e", padx=5, pady=10
-        )
+        ttk.Label(main_frame, text="Max weight per container:").grid(row=1, column=0, sticky="e", padx=5, pady=10)
         self.capacity_var = tk.DoubleVar(value=0.0)
-        tk.Entry(main_frame, textvariable=self.capacity_var, width=10).grid(
-            row=1, column=1, sticky="w", padx=5, pady=10
-        )
+        ttk.Entry(main_frame, textvariable=self.capacity_var, width=10, font=entry_font).grid(row=1, column=1, sticky="w", padx=5)
 
         # File selection
         self.csv_path: Optional[str] = None
-        tk.Button(
-            main_frame, text="Select CSV File...", command=self.browse_csv,
-            width=20
-        ).grid(row=2, column=0, columnspan=2, pady=10)
+        ttk.Button(main_frame, text="Select CSV File...", command=self.browse_csv, width=20).grid(row=2, column=0, columnspan=2, pady=10)
+        self.file_label = ttk.Label(main_frame, text="No file selected", wraplength=300)
+        self.file_label.grid(row=3, column=0, columnspan=2)
 
-        self.file_label = tk.Label(main_frame, text="No file selected", wraplength=300)
-        self.file_label.grid(row=3, column=0, columnspan=2, pady=5)
-
-        self.help_text = tk.Label(
+        ttk.Label(
             main_frame,
-            text="Make sure your CSV has columns named \"BlockNo\" and \"Weight\".",
+            text="Make sure your CSV has columns named 'BlockNo' and 'Weight'",
             wraplength=400,
-            fg="blue"
-        )
-        self.help_text.grid(row=4, column=0, columnspan=2, pady=(0, 15))
+            foreground="blue",
+        ).grid(row=4, column=0, columnspan=2, pady=(0, 15))
 
         # Run button
-        tk.Button(
-            main_frame, text="Run program", command=self.run_allocation,
-            width=20
-        ).grid(row=5, column=0, columnspan=2, pady=20)
+        ttk.Button(main_frame, text="Run allocation", command=self.run_allocation, width=20).grid(row=5, column=0, columnspan=2, pady=20)
 
-        main_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_columnconfigure(1, weight=1)
+        for col in range(2):
+            main_frame.columnconfigure(col, weight=1)
 
     def browse_csv(self) -> None:
-        path = filedialog.askopenfilename(
-            filetypes=[("CSV files", "*.csv")],
-            title="Select block data CSV"
-        )
+        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Select block data CSV")
         if path:
             self.csv_path = path
             self.file_label.config(text=path)
@@ -93,27 +86,35 @@ class BlockAllocatorGUI(tk.Tk):
             blocks = load_blocks(self.csv_path)
             assignments = assign_containers(blocks, capacity, count)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load or process data: {e}")
+            messagebox.showerror("Error", f"Failed to process data: {e}")
             return
 
-        # Create results window
+        # Display results in new window
         result_win = tk.Toplevel(self)
         result_win.title(GUI_RESULTS_settings.WINDOW_TITLE)
         result_win.geometry(GUI_RESULTS_settings.WINDOW_GEOMETRY)
-        result_font = tkfont.Font(family=GUI_RESULTS_settings.FONT, size=GUI_RESULTS_settings.FONT_SIZE)
-        result_frame = tk.Frame(result_win, padx=10, pady=10)
+
+        # Apply same ttk style to results window
+        style = ttk.Style(result_win)
+        try:
+            style.theme_use('clam')
+        except tk.TclError:
+            style.theme_use(style.theme_names()[0])
+        style.configure('.', font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE), padding=4)
+
+        result_frame = ttk.Frame(result_win, padding=(10, 10))
         result_frame.pack(fill=tk.BOTH, expand=True)
 
         cols = 2
         for idx, (cid, info) in enumerate(assignments.items()):
-            row = idx // cols
-            col = idx % cols
-            blocks_list = info["blocks"]
-            total_wt = info["total_weight"]
+            row, col = divmod(idx, cols)
+            blocks_list = info['blocks']
+            total_wt = info['total_weight']
             text = f"Container {cid}:\nBlocks: {blocks_list}\nTotal: {total_wt}"
-            lbl = tk.Label(
-                result_frame, text=text, font=result_font,
-                relief=tk.RIDGE, padx=10, pady=10, justify="left"
-            )
+            lbl = ttk.Label(result_frame, text=text, relief=tk.RIDGE, padding=10, justify="left")
             lbl.grid(row=row, column=col, sticky="nsew", padx=5, pady=5)
-            result_frame.grid_columnconfigure(col, weight=1)
+            result_frame.columnconfigure(col, weight=1)
+
+if __name__ == '__main__':
+    app = BlockAllocatorGUI()
+    app.mainloop()
