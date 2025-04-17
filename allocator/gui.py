@@ -112,7 +112,7 @@ class BlockAllocatorGUI(tk.Tk):
             blocks_list = info['blocks']
             blocks_str_to_display = ', '.join(str(b) for b in blocks_list) if len(blocks_list) >= 1 else "No blocks"
             total_wt = info['total_weight']
-            text = f"Container {cid}:\nBlocks: {blocks_str_to_display}\nTotal: {total_wt}"
+            text = f"Container {cid}:\nBlocks: {blocks_str_to_display}\nTotal: {round(total_wt, 2)}"
             lbl = ttk.Label(result_frame, text=text, relief=tk.RIDGE, padding=10, justify="left")
             lbl.grid(row=row, column=col, sticky="nsew", padx=5, pady=5)
             result_frame.columnconfigure(col, weight=1)
