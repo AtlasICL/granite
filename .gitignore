@@ -2,6 +2,6 @@ venv/
 
 build/
 dist/
-main.spec
+*.spec
 
 allocator/__pycache__
