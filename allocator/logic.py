@@ -12,9 +12,7 @@ def load_blocks(path: str) -> List[dBlock]:
     return list(df[['BlockNo', 'Weight']].itertuples(index=False, name=None))
 
 
-def find_best_subset(
-    blocks: List[dBlock], capacity: float
-) -> Tuple[List[dBlock], float]:
+def find_best_subset(blocks: List[dBlock], capacity: float) -> Tuple[List[dBlock], float]:
     best_subset: List[dBlock] = []
     best_weight: float = 0.0
 
@@ -34,9 +32,7 @@ def find_best_subset(
     return best_subset, best_weight
 
 
-def assign_containers(
-    blocks: List[dBlock], capacity: float, count: int
-) -> ContainerMap:
+def assign_containers(blocks: List[dBlock], capacity: float, count: int) -> ContainerMap:
     """Pack blocks into `count` containers."""
     remaining = blocks.copy()
     assignments: ContainerMap = {}
