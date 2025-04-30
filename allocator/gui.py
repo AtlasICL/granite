@@ -21,6 +21,11 @@ class GUI_RESULTS_settings:
     WINDOW_GEOMETRY: str = "600x600"
     FONT_FAMILY: str = "Arial"
     FONT_SIZE: int = 14
+    HEADER_COLOR: str = "#3a7ca5"  # Blue header
+    CONTAINER_BG: str = "#f5f5f5"  # Light gray background
+    CONTAINER_BORDER: str = "#dcdcdc"  # Border color
+    BLOCKS_BG: str = "#ffffff"  # White background for blocks text
+    WEIGHT_COLOR: str = "#2c666e"  # Teal for weight information
 
 
 class BlockAllocatorGUI(tk.Tk):
@@ -37,9 +42,49 @@ class BlockAllocatorGUI(tk.Tk):
         style.configure('.', font=(GUI_SELECTION_settings.FONT_FAMILY, GUI_SELECTION_settings.FONT_SIZE), padding=6)
         entry_font = tkfont.Font(family=GUI_SELECTION_settings.FONT_FAMILY, size=GUI_SELECTION_settings.DATA_ENTRY_FONT_SIZE)
 
-        # Main frame
-        main_frame = ttk.Frame(self, padding=(20, 20))
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Create scrollable frame for main content
+        outer_frame = ttk.Frame(self)
+        outer_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Add canvas for scrolling
+        canvas = tk.Canvas(outer_frame, highlightthickness=0)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(outer_frame, orient=tk.VERTICAL, command=canvas.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Configure canvas
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        
+        # Add mousewheel scrolling
+        def _on_mousewheel(event):
+            if event.num == 5 or event.delta < 0:  # Scroll down
+                canvas.yview_scroll(1, "units")
+            elif event.num == 4 or event.delta > 0:  # Scroll up
+                canvas.yview_scroll(-1, "units")
+        
+        # Bind mousewheel for different platforms
+        if self.tk.call('tk', 'windowingsystem') == 'win32':
+            # Windows binding
+            canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
+        else:
+            # Linux binding
+            canvas.bind_all("<Button-4>", _on_mousewheel)
+            canvas.bind_all("<Button-5>", _on_mousewheel)
+            # macOS binding with Shift+MouseWheel if using X11
+            canvas.bind_all("<Shift-MouseWheel>", _on_mousewheel)
+
+        # Main frame inside canvas
+        main_frame = ttk.Frame(canvas, padding=(20, 20))
+        canvas_window = canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        
+        # Make frame expand to canvas width
+        def configure_frame_width(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+        canvas.bind('<Configure>', lambda event: [canvas.configure(scrollregion=canvas.bbox("all")), 
+                                                 configure_frame_width(event)])
 
         # Number of containers
         ttk.Label(main_frame, text=GUI_SELECTION_settings.CONTAINER_COUNT_TEXT).grid(row=0, column=0, sticky="e", padx=5, pady=10)
@@ -102,19 +147,158 @@ class BlockAllocatorGUI(tk.Tk):
         except tk.TclError:
             style.theme_use(style.theme_names()[0])
         style.configure('.', font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE), padding=4)
-
-        result_frame = ttk.Frame(result_win, padding=(10, 10))
-        result_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Create a canvas with scrollbar for scrolling through containers
+        outer_frame = ttk.Frame(result_win)
+        outer_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Add a canvas (for scrolling)
+        canvas = tk.Canvas(outer_frame, highlightthickness=0)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Add a scrollbar
+        scrollbar = ttk.Scrollbar(outer_frame, orient=tk.VERTICAL, command=canvas.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Configure the canvas
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        
+        # Helper function for mousewheel scrolling - create a reusable function
+        def bind_mousewheel_to_canvas(canvas_widget, root_widget):
+            def _on_mousewheel(event):
+                if event.num == 5 or event.delta < 0:  # Scroll down
+                    canvas_widget.yview_scroll(1, "units")
+                elif event.num == 4 or event.delta > 0:  # Scroll up
+                    canvas_widget.yview_scroll(-1, "units")
+            
+            # Bind mousewheel for different platforms
+            if root_widget.tk.call('tk', 'windowingsystem') == 'win32':
+                # Windows binding
+                canvas_widget.bind_all("<MouseWheel>", lambda event: canvas_widget.yview_scroll(int(-1*(event.delta/120)), "units"))
+            else:
+                # Linux binding
+                canvas_widget.bind_all("<Button-4>", _on_mousewheel)
+                canvas_widget.bind_all("<Button-5>", _on_mousewheel)
+                # macOS binding with Shift+MouseWheel if using X11
+                canvas_widget.bind_all("<Shift-MouseWheel>", _on_mousewheel)
+        
+        # Bind mousewheel for this canvas
+        bind_mousewheel_to_canvas(canvas, result_win)
+        
+        # Create the frame that will contain all the containers
+        result_frame = ttk.Frame(canvas)
+        
+        # Add the frame to the canvas
+        canvas_window = canvas.create_window((0, 0), window=result_frame, anchor="nw")
+        
+        # Make sure the frame expands to the canvas width
+        def configure_frame_width(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+        canvas.bind('<Configure>', lambda event: [canvas.configure(scrollregion=canvas.bbox("all")), 
+                                                 configure_frame_width(event)])
 
         cols = 2
+        max_rows = (len(assignments) + cols - 1) // cols  # Calculate number of rows needed
+        
+        for row in range(max_rows):
+            result_frame.rowconfigure(row, weight=1)
+            
+        for col in range(cols):
+            result_frame.columnconfigure(col, weight=1)
+            
         for idx, (cid, info) in enumerate(assignments.items()):
             row, col = divmod(idx, cols)
             blocks_list = info['blocks']
-            blocks_str_to_display = ', '.join(str(b) for b in blocks_list) if len(blocks_list) >= 1 else "No blocks"
+            
             total_wt = info['total_weight']
-            text = f"Container {cid}:\nBlocks: {blocks_str_to_display}\nTotal: {total_wt:.2f}"
-            lbl = ttk.Label(result_frame, text=text, relief=tk.RIDGE, padding=10, justify="left")
-            lbl.grid(row=row, column=col, sticky="nsew", padx=5, pady=5)
+            
+            # Create a frame for this container with improved styling
+            container_frame = ttk.Frame(result_frame, relief=tk.RIDGE, padding=10)
+            container_frame.grid(row=row, column=col, sticky="nsew", padx=8, pady=8)
+            
+            # Styled header with container number
+            header = ttk.Label(
+                container_frame, 
+                text=f"Container {cid}", 
+                anchor="w",
+                font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE, "bold"),
+                foreground=GUI_RESULTS_settings.HEADER_COLOR
+            )
+            header.pack(fill="x", pady=(0, 5))
+            
+            # Separator for visual distinction
+            ttk.Separator(container_frame, orient="horizontal").pack(fill="x", pady=3)
+            
+            # Create a frame for the blocks with border and padding
+            blocks_frame = ttk.Frame(container_frame, padding=(5, 5))
+            blocks_frame.pack(fill="both", expand=True, pady=5)
+            
+            # Blocks title
+            ttk.Label(
+                blocks_frame,
+                text="Blocks:",
+                anchor="w",
+                font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE - 1, "italic")
+            ).pack(fill="x", anchor="w")
+            
+            # Create a bordered frame for the text widget
+            text_container = ttk.Frame(blocks_frame, relief=tk.GROOVE, borderwidth=1)
+            text_container.pack(fill="both", expand=True, pady=3)
+            
+            # Use Text widget with improved styling for block numbers
+            blocks_text = tk.Text(
+                text_container, 
+                height=5, 
+                width=30, 
+                wrap="word",
+                font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE - 1),
+                background=GUI_RESULTS_settings.BLOCKS_BG,
+                relief=tk.FLAT,
+                padx=5,
+                pady=5
+            )
+            
+            # Format block numbers more attractively
+            if len(blocks_list) > 0:
+                formatted_blocks = ""
+                for i, block_no in enumerate(blocks_list):
+                    formatted_blocks += f"{block_no}"
+                    # Add commas between blocks except for the last one in a row
+                    if i < len(blocks_list) - 1:
+                        formatted_blocks += ", "
+                    # Add line break after every 4 blocks
+                    if (i + 1) % 4 == 0 and i < len(blocks_list) - 1:
+                        formatted_blocks += "\n"
+                blocks_text.insert("1.0", formatted_blocks)
+            else:
+                blocks_text.insert("1.0", "No blocks")
+                
+            blocks_text.config(state="disabled")  # Make it read-only
+            blocks_text.pack(fill="both", expand=True)
+            
+            # Separator before weight
+            ttk.Separator(container_frame, orient="horizontal").pack(fill="x", pady=3)
+            
+            # Weight information with distinct styling
+            weight_frame = ttk.Frame(container_frame)
+            weight_frame.pack(fill="x", pady=(5, 0))
+            
+            ttk.Label(
+                weight_frame, 
+                text=f"Total Weight:", 
+                anchor="w",
+                font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE - 1)
+            ).pack(side=tk.LEFT)
+            
+            ttk.Label(
+                weight_frame, 
+                text=f"{total_wt:.2f}", 
+                anchor="e",
+                font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE - 1, "bold"),
+                foreground=GUI_RESULTS_settings.WEIGHT_COLOR
+            ).pack(side=tk.RIGHT, padx=(5, 0))
+            
             result_frame.columnconfigure(col, weight=1)
 
 if __name__ == '__main__':
