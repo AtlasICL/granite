@@ -8,13 +8,14 @@ from allocator.logic import load_blocks, assign_containers
 # Settings for selection window
 class GUI_SELECTION_settings:
     WINDOW_TITLE: str = "Geoinvest Block Allocator"
-    WINDOW_GEOMETRY: str = "600x550"
+    WINDOW_GEOMETRY: str = "600x600"
     FONT_FAMILY: str = "Arial"
     FONT_SIZE: int = 14
     DATA_ENTRY_FONT_SIZE: int = 12
     CONTAINER_COUNT_TEXT: str = "Number of containers:"
     CONTAINER_PAYLOAD_TEXT: str = "Max weight per container:"
     MAX_BLOCKS_PER_CONTAINER_TEXT: str = "Max blocks per container:"
+    BACKGROUND_COLOR: str = "#f5f0e1"  # Light brown/cream background
 
 # Settings for results window
 class GUI_RESULTS_settings:
@@ -27,6 +28,7 @@ class GUI_RESULTS_settings:
     CONTAINER_BORDER: str = "#dcdcdc"  # Border color
     BLOCKS_BG: str = "#ffffff"  # White background for blocks text
     WEIGHT_COLOR: str = "#2c666e"  # Teal for weight information
+    BACKGROUND_COLOR: str = "#f5f0e1"  # Light brown/cream background matching selection window
 
 
 class BlockAllocatorGUI(tk.Tk):
@@ -34,6 +36,7 @@ class BlockAllocatorGUI(tk.Tk):
         super().__init__()
         self.title(GUI_SELECTION_settings.WINDOW_TITLE)
         self.geometry(GUI_SELECTION_settings.WINDOW_GEOMETRY)
+        self.configure(background=GUI_SELECTION_settings.BACKGROUND_COLOR)
 
         style = ttk.Style(self)
         try:
@@ -41,14 +44,18 @@ class BlockAllocatorGUI(tk.Tk):
         except tk.TclError:
             style.theme_use(style.theme_names()[0])
         style.configure('.', font=(GUI_SELECTION_settings.FONT_FAMILY, GUI_SELECTION_settings.FONT_SIZE), padding=6)
+        # Configure ttk frame background
+        style.configure('TFrame', background=GUI_SELECTION_settings.BACKGROUND_COLOR)
+        style.configure('TLabel', background=GUI_SELECTION_settings.BACKGROUND_COLOR)
+        style.configure('TButton', background=GUI_SELECTION_settings.BACKGROUND_COLOR)
         entry_font = tkfont.Font(family=GUI_SELECTION_settings.FONT_FAMILY, size=GUI_SELECTION_settings.DATA_ENTRY_FONT_SIZE)
 
         # Create scrollable frame for main content
         outer_frame = ttk.Frame(self)
         outer_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Add canvas for scrolling
-        canvas = tk.Canvas(outer_frame, highlightthickness=0)
+        # Add canvas for scrolling with background color
+        canvas = tk.Canvas(outer_frame, highlightthickness=0, background=GUI_SELECTION_settings.BACKGROUND_COLOR)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Add scrollbar
@@ -180,6 +187,7 @@ class BlockAllocatorGUI(tk.Tk):
         result_win = tk.Toplevel(self)
         result_win.title(GUI_RESULTS_settings.WINDOW_TITLE)
         result_win.geometry(GUI_RESULTS_settings.WINDOW_GEOMETRY)
+        result_win.configure(background=GUI_RESULTS_settings.BACKGROUND_COLOR)
 
         # Apply same ttk style to results window
         style = ttk.Style(result_win)
@@ -188,13 +196,15 @@ class BlockAllocatorGUI(tk.Tk):
         except tk.TclError:
             style.theme_use(style.theme_names()[0])
         style.configure('.', font=(GUI_RESULTS_settings.FONT_FAMILY, GUI_RESULTS_settings.FONT_SIZE), padding=4)
+        style.configure('TFrame', background=GUI_RESULTS_settings.BACKGROUND_COLOR)
+        style.configure('TLabel', background=GUI_RESULTS_settings.BACKGROUND_COLOR)
         
         # Create a canvas with scrollbar for scrolling through containers
         outer_frame = ttk.Frame(result_win)
         outer_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Add a canvas (for scrolling)
-        canvas = tk.Canvas(outer_frame, highlightthickness=0)
+        canvas = tk.Canvas(outer_frame, highlightthickness=0, background=GUI_RESULTS_settings.BACKGROUND_COLOR)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Add a scrollbar
