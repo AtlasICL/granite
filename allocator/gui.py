@@ -8,12 +8,13 @@ from allocator.logic import load_blocks, assign_containers
 # Settings for selection window
 class GUI_SELECTION_settings:
     WINDOW_TITLE: str = "Geoinvest Block Allocator"
-    WINDOW_GEOMETRY: str = "500x400"
+    WINDOW_GEOMETRY: str = "600x550"
     FONT_FAMILY: str = "Arial"
     FONT_SIZE: int = 14
     DATA_ENTRY_FONT_SIZE: int = 12
     CONTAINER_COUNT_TEXT: str = "Number of containers:"
     CONTAINER_PAYLOAD_TEXT: str = "Max weight per container:"
+    MAX_BLOCKS_PER_CONTAINER_TEXT: str = "Max blocks per container:"
 
 # Settings for results window
 class GUI_RESULTS_settings:
@@ -89,28 +90,61 @@ class BlockAllocatorGUI(tk.Tk):
         # Number of containers
         ttk.Label(main_frame, text=GUI_SELECTION_settings.CONTAINER_COUNT_TEXT).grid(row=0, column=0, sticky="e", padx=5, pady=10)
         self.container_count_var = tk.IntVar(value=2)
-        ttk.Entry(main_frame, textvariable=self.container_count_var, width=10, font=entry_font).grid(row=0, column=1, sticky="w", padx=5)
+        container_count_entry = ttk.Entry(main_frame, textvariable=self.container_count_var, width=10, font=entry_font)
+        container_count_entry.grid(row=0, column=1, sticky="w", padx=5)
 
         # Max weight per container
         ttk.Label(main_frame, text=GUI_SELECTION_settings.CONTAINER_PAYLOAD_TEXT).grid(row=1, column=0, sticky="e", padx=5, pady=10)
         self.capacity_var = tk.DoubleVar(value=0.0)
-        ttk.Entry(main_frame, textvariable=self.capacity_var, width=10, font=entry_font).grid(row=1, column=1, sticky="w", padx=5)
+        capacity_entry = ttk.Entry(main_frame, textvariable=self.capacity_var, width=10, font=entry_font)
+        capacity_entry.grid(row=1, column=1, sticky="w", padx=5)
+        
+        # Max blocks per container
+        ttk.Label(main_frame, text=GUI_SELECTION_settings.MAX_BLOCKS_PER_CONTAINER_TEXT).grid(row=2, column=0, sticky="e", padx=5, pady=10)
+        self.max_blocks_options = ["No limit", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+        self.max_blocks_var = tk.StringVar(value=self.max_blocks_options[0])
+        
+        # Style the combobox to match other inputs
+        max_blocks_dropdown = ttk.Combobox(
+            main_frame, 
+            textvariable=self.max_blocks_var, 
+            values=self.max_blocks_options, 
+            width=10, 
+            font=entry_font, 
+            state="readonly",
+            height=10  # Show all options without scrolling
+        )
+        
+        # Configure the combobox dropdown appearance
+        self.option_add('*TCombobox*Listbox.font', entry_font)
+        self.option_add('*TCombobox*Listbox.background', '#ffffff')
+        self.option_add('*TCombobox*Listbox.selectBackground', '#0078d7')
+        self.option_add('*TCombobox*Listbox.selectForeground', '#ffffff')
+        
+        # Fix the dropdown color issue - prevent it from turning blue after selection
+        style.map('TCombobox',
+                  fieldbackground=[('readonly', 'white')],
+                  selectbackground=[('readonly', 'white')],
+                  selectforeground=[('readonly', 'black')])
+        
+        # Position the dropdown
+        max_blocks_dropdown.grid(row=2, column=1, sticky="w", padx=5)
 
         # File selection
         self.csv_path: Optional[str] = None
-        ttk.Button(main_frame, text="Select CSV File...", command=self.browse_csv, width=20).grid(row=2, column=0, columnspan=2, pady=10)
+        ttk.Button(main_frame, text="Select CSV File...", command=self.browse_csv, width=20).grid(row=3, column=0, columnspan=2, pady=10)
         self.file_label = ttk.Label(main_frame, text="No file selected", wraplength=300)
-        self.file_label.grid(row=3, column=0, columnspan=2)
+        self.file_label.grid(row=4, column=0, columnspan=2)
 
         ttk.Label(
             main_frame,
             text="Make sure your CSV has columns named 'BlockNo' and 'Weight'",
             wraplength=400,
             foreground="blue",
-        ).grid(row=4, column=0, columnspan=2, pady=(0, 15))
+        ).grid(row=5, column=0, columnspan=2, pady=(0, 15))
 
         # Run button
-        ttk.Button(main_frame, text="Run allocation", command=self.run_allocation, width=20).grid(row=5, column=0, columnspan=2, pady=20)
+        ttk.Button(main_frame, text="Run allocation", command=self.run_allocation, width=20).grid(row=6, column=0, columnspan=2, pady=20)
 
         for col in range(2):
             main_frame.columnconfigure(col, weight=1)
@@ -129,8 +163,15 @@ class BlockAllocatorGUI(tk.Tk):
         try:
             count = self.container_count_var.get()
             capacity = self.capacity_var.get()
+            
+            # Get max blocks per container value
+            max_blocks_str = self.max_blocks_var.get()
+            max_blocks = None  # None means no limit
+            if max_blocks_str != "No limit":
+                max_blocks = int(max_blocks_str)
+                
             blocks = load_blocks(self.csv_path)
-            assignments = assign_containers(blocks, capacity, count)
+            assignments = assign_containers(blocks, capacity, count, max_blocks)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to process data: {e}")
             return
