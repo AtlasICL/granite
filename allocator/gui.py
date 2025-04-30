@@ -4,11 +4,12 @@ import tkinter.font as tkfont
 from tkinter import ttk
 from typing import Optional
 from allocator.logic import load_blocks, assign_containers
+import os
 
 # Settings for selection window
 class GUI_SELECTION_settings:
     WINDOW_TITLE: str = "Geoinvest Block Allocator"
-    WINDOW_GEOMETRY: str = "600x600"
+    WINDOW_GEOMETRY: str = "600x500"
     FONT_FAMILY: str = "Arial"
     FONT_SIZE: int = 14
     DATA_ENTRY_FONT_SIZE: int = 12
@@ -71,12 +72,14 @@ class BlockAllocatorGUI(tk.Tk):
             if event.num == 5 or event.delta < 0:  # Scroll down
                 canvas.yview_scroll(1, "units")
             elif event.num == 4 or event.delta > 0:  # Scroll up
-                canvas.yview_scroll(-1, "units")
+                # Only scroll up if not at the top
+                if canvas.yview()[0] > 0:
+                    canvas.yview_scroll(-1, "units")
         
         # Bind mousewheel for different platforms
         if self.tk.call('tk', 'windowingsystem') == 'win32':
             # Windows binding
-            canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
+            canvas.bind_all("<MouseWheel>", lambda event: canvas.yview_scroll(int(-1*(event.delta/120)) if (event.delta < 0 or canvas.yview()[0] > 0) else 0, "units"))
         else:
             # Linux binding
             canvas.bind_all("<Button-4>", _on_mousewheel)
@@ -156,11 +159,26 @@ class BlockAllocatorGUI(tk.Tk):
         for col in range(2):
             main_frame.columnconfigure(col, weight=1)
 
+        # Set scrollbar to top initially and prevent scrolling above this point
+        def _prevent_scroll_above_top(event=None):
+            # Set initial position at top
+            canvas.yview_moveto(0)
+            # Configure scrollregion to prevent scrolling above the top
+            region = list(canvas.bbox("all"))
+            if region:
+                region[1] = 0  # Set top of scrollregion to 0
+                canvas.configure(scrollregion=region)
+        
+        # Call after all widgets are created and sized
+        self.after(100, _prevent_scroll_above_top)
+
     def browse_csv(self) -> None:
         path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")], title="Select block data CSV")
         if path:
             self.csv_path = path
-            self.file_label.config(text=path)
+            # Extract just the filename from the path
+            filename = os.path.basename(path)
+            self.file_label.config(text=filename)
 
     def run_allocation(self) -> None:
         if not self.csv_path:
